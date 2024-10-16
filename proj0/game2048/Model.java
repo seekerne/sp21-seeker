@@ -119,16 +119,23 @@ public class Model extends Observable {
         for (int row = board.size() - 1; row >= 0; row--) {
             for(int col = 0; col < board.size(); col++) {
                 if (board.tile(col, row) == null) {
-                    nulllcache[col][row] = true;
+                    int newCol = getNewCol(col,row,side);
+                    int newRow = getNewRow(col,row,side);
+                    nulllcache[newCol][newRow] = true;
                 } else {
-                    int temp = checkVolCache(volcache, col, row, board.tile(col, row).value());
-                    if (temp != -1){
+                    int newCol1 = getNewCol(col, row, side);
+                    int newRow1 = getNewRow(col, row, side);
+                    int temp = checkVolCache(volcache, newCol1, newRow1, board.tile(col, row).value());
+                    if (temp != -1) {
                         score += (board.tile(col, row).value() * 2);
-                        mergeMoveAndUpdate(col,row,temp,nulllcache);
+                        mergeMoveAndUpdate(col, row, temp, nulllcache, side);
                         changed = true;
                     }else {
-                        int destRow = findNullDest(nulllcache, col, row);
+                        int newCol2 = getNewCol(col, row, side);
+                        int newRow2 = getNewRow(col, row, side);
+                        int destRow = findNullDest(nulllcache, newCol2, newRow2);
                         if(destRow != -1) {
+                            int originRow = getOriginRow()
                             moveUpAndUpdate(destRow,col,row,nulllcache,volcache);
                             changed = true;
                         }
@@ -177,10 +184,13 @@ public class Model extends Observable {
         }
         return -1;
     }
-    private void mergeMoveAndUpdate(int col, int row, int destRow, boolean[][] nullcache) {
+    private void mergeMoveAndUpdate(int col, int row, int destRow, boolean[][] nullcache, Side side) {
         Tile t = board.tile(col, row);
         board.move(col, destRow, t);
-        nullcache[col][row] = true;
+
+        int newCol = getNewCol(col,row,side);
+        int newRow = getNewRow(col,row,side);
+        nullcache[newCol][newRow] = true;
     }
     private void moveUpAndUpdate(int destRow, int col, int row ,boolean[][] nullcache, int[][] volcache) {
         Tile t = board.tile(col, row);
@@ -188,6 +198,43 @@ public class Model extends Observable {
         nullcache[col][row] = true;
         volcache[col][1] = destRow;
     }
+    private int getNewCol(int col,int row, Side side){
+        return side.col(col, row, size());
+    }
+    private int getNewRow(int col,int row, Side side){
+        return side.row(col, row, size());
+    }
+    // Coordinate inverse transformation
+    private int getOriginCol(int col,int row, Side side){
+        switch (side){
+            case NORTH:
+                return col;
+            case EAST:
+                return 3-row;
+            case SOUTH:
+                return 3-col;
+            case WEST:
+                return row;
+            default:
+                throw new IllegalStateException("Unexpected value: " + side);
+        }
+    }
+    private int getOriginRow(int col,int row, Side side){
+        switch (side){
+            case NORTH:
+                return row;
+            case EAST:
+                return col;
+            case SOUTH:
+                return 3-row;
+            case WEST:
+                return 3-col;
+            default:
+                throw new IllegalStateException("Unexpected value: " + side);
+        }
+    }
+
+
 
 
     /** Checks if the game is over and sets the gameOver variable

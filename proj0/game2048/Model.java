@@ -111,44 +111,25 @@ public class Model extends Observable {
         changed = false;
 
         board.setViewingPerspective(side);
-
-        int[][] volcache = new int[4][2];
-        initCache(volcache);
-        boolean[][] nulllcache = new boolean[4][4]; // Record the position of null
-
-        for (int row = board.size() - 1; row >= 0; row--) {
-            for(int col = 0; col < board.size(); col++) {
-                if (board.tile(col, row) == null) {
-                    int newCol = getNewCol(col,row,side);
-                    int newRow = getNewRow(col,row,side);
-                    nulllcache[newCol][newRow] = true;
-                } else {
-                    int newCol1 = getNewCol(col, row, side);
-                    int newRow1 = getNewRow(col, row, side);
-                    int temp = checkVolCache(volcache, newCol1, newRow1, board.tile(col, row).value());
-                    if (temp != -1) {
-                        score += (board.tile(col, row).value() * 2);
-                        mergeMoveAndUpdate(col, row, temp, nulllcache, side);
-                        changed = true;
-                    }else {
-                        int newCol2 = getNewCol(col, row, side);
-                        int newRow2 = getNewRow(col, row, side);
-                        int destRow = findNullDest(nulllcache, newCol2, newRow2);
-                        if(destRow != -1) {
-                            int originRow = getOriginRow()
-                            moveUpAndUpdate(destRow,col,row,nulllcache,volcache);
-                            changed = true;
-                        }
-                    }
+        for (int col = 0; col < board.size(); col++) {
+            int dest = board.size() - 1;
+            for (int row = board.size() - 2; row >= 0; row--) {
+                Tile t = board.tile(col, row);
+                if (t == null)
+                    continue;
+                while (dest > row && board.tile(col, dest) != null && board.tile(col, dest).value() != t.value()) {
+                    dest--;
                 }
-
+                if (dest == row)
+                    continue;
+                if (board.move(col, dest, t)) {
+                    score += board.tile(col, dest).value();
+                    dest--; // Prevent multiple merges
+                }
+                changed = true;
             }
         }
-
         board.setViewingPerspective(Side.NORTH);
-        // TODO: Modify this.board (and perhaps this.score) to account
-        // for the tilt to the Side SIDE. If the board changed, set the
-        // changed local variable to true.
 
         checkGameOver();
         if (changed) {

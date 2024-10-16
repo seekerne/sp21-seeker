@@ -110,6 +110,35 @@ public class Model extends Observable {
         boolean changed;
         changed = false;
 
+        board.setViewingPerspective(side);
+
+        int[][] volcache = new int[4][2];
+        initCache(volcache);
+        boolean[][] nulllcache = new boolean[4][4]; // Record the position of null
+
+        for (int row = board.size() - 1; row >= 0; row--) {
+            for(int col = 0; col < board.size(); col++) {
+                if (board.tile(col, row) == null) {
+                    nulllcache[col][row] = true;
+                } else {
+                    int temp = checkVolCache(volcache, col, row, board.tile(col, row).value());
+                    if (temp != -1){
+                        score += (board.tile(col, row).value() * 2);
+                        mergeMoveAndUpdate(col,row,temp,nulllcache);
+                        changed = true;
+                    }else {
+                        int destRow = findNullDest(nulllcache, col, row);
+                        if(destRow != -1) {
+                            moveUpAndUpdate(destRow,col,row,nulllcache,volcache);
+                            changed = true;
+                        }
+                    }
+                }
+
+            }
+        }
+
+        board.setViewingPerspective(Side.NORTH);
         // TODO: Modify this.board (and perhaps this.score) to account
         // for the tilt to the Side SIDE. If the board changed, set the
         // changed local variable to true.
@@ -120,6 +149,46 @@ public class Model extends Observable {
         }
         return changed;
     }
+
+
+
+    // Initial value is set to -1
+    private void initCache(int[][] volcache){
+        for (int i = 0; i < 4; i++) {
+            volcache[i][0] = -1;
+        }
+    }
+    private int checkVolCache(int[][] volcache, int col, int row, int value){
+        if (volcache[col][0] == value){
+            volcache[col][0] = -1;
+            return volcache[col][1];
+        }
+        else{
+            volcache[col][0] = value;
+            volcache[col][1] = row;
+            return -1;
+        }
+    }
+    private int findNullDest(boolean[][] nullcache, int col, int currentRow){
+        for(int row = board.size() - 1; row > currentRow; row--){
+            if (nullcache[col][row]) {
+                return row;
+            }
+        }
+        return -1;
+    }
+    private void mergeMoveAndUpdate(int col, int row, int destRow, boolean[][] nullcache) {
+        Tile t = board.tile(col, row);
+        board.move(col, destRow, t);
+        nullcache[col][row] = true;
+    }
+    private void moveUpAndUpdate(int destRow, int col, int row ,boolean[][] nullcache, int[][] volcache) {
+        Tile t = board.tile(col, row);
+        board.move(col, destRow, t);
+        nullcache[col][row] = true;
+        volcache[col][1] = destRow;
+    }
+
 
     /** Checks if the game is over and sets the gameOver variable
      *  appropriately.
